@@ -237,6 +237,12 @@ void WebInterface::processWebSocketCommand(String message) {
   } else if (command == "set_zero") {
     String axis = doc["axis"];
     Serial.printf("🎯 Установка нуля для оси: %s\n", axis.c_str());
+  } else if (command == "set_zero") {
+    String axis = doc["axis"];
+    Serial.printf("🎯 Установка нуля для оси: %s\n", axis.c_str());
+
+  } else if (command == "set_current_as_zero") {
+    Serial.println("🎯 Установка текущей позиции как нулевой");
   }
 
   sendSystemState();
@@ -557,6 +563,46 @@ String WebInterface::getMainPage() {
             width: 90%; 
             max-width: 500px; 
         }
+
+        /* Grid Controls */
+        .grid-controls {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+            justify-content: center;
+        }
+        
+        .grid-btn {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        
+        .grid-btn.active {
+            background: var(--primary);
+            font-weight: bold;
+        }
+        
+        .zero-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        
+        .zero-btn {
+            background: var(--warning);
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
         
         /* Connection Status */
         .connection-status {
@@ -630,6 +676,20 @@ String WebInterface::getMainPage() {
             <div class="panel jog-panel">
                 <h3>🎮 Ручное управление</h3>
                 
+                <!-- Сетка перемещения -->
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <div style="color: #aaa; margin-bottom: 5px;">Сетка перемещения:</div>
+                    <div class="grid-controls">
+                        <button class="grid-btn active" onclick="setGrid(0.1)">0.1mm</button>
+                        <button class="grid-btn" onclick="setGrid(1)">1mm</button>
+                        <button class="grid-btn" onclick="setGrid(10)">10mm</button>
+                        <button class="grid-btn" onclick="setGrid(100)">100mm</button>
+                    </div>
+                    <div style="color: #4CAF50; font-size: 0.9em; margin-top: 5px;">
+                        Текущий шаг: <span id="currentGrid">1</span> mm
+                    </div>
+                </div>
+                
                 <div class="jog-container">
                     <!-- XY Jog Grid -->
                     <div class="xy-jog-grid">
@@ -644,6 +704,19 @@ String WebInterface::getMainPage() {
                     <div class="z-jog-grid">
                         <button class="jog-btn btn-z-plus" onclick="jog('Z+')">Z+</button>
                         <button class="jog-btn btn-z-minus" onclick="jog('Z-')">Z-</button>
+                    </div>
+                </div>
+
+                <!-- Обнуление координат -->
+                <div style="margin: 15px 0;">
+                    <div style="color: #aaa; margin-bottom: 8px;">Обнуление координат:</div>
+                    <div class="zero-controls">
+                        <button class="zero-btn" onclick="setZero('X')">X=0</button>
+                        <button class="zero-btn" onclick="setZero('Y')">Y=0</button>
+                        <button class="zero-btn" onclick="setZero('Z')">Z=0</button>
+                        <button class="zero-btn" onclick="setZero('XY')">XY=0</button>
+                        <button class="zero-btn" onclick="setZero('XYZ')">XYZ=0</button>
+                        <button class="zero-btn" onclick="setCurrentAsZero()">Текущая=0</button>
                     </div>
                 </div>
                 
@@ -811,11 +884,13 @@ String WebInterface::getMainPage() {
         let reconnectInterval;
         let selectedFile = null;
         let currentEditingPreset = null;
+        let currentGrid = 1; // Текущий шаг сетки по умолчанию 1mm
         
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
             loadFileList();
+            updateGridButtons(); // Активируем кнопку сетки по умолчанию
         });
         
         function setupEventListeners() {
@@ -894,6 +969,37 @@ String WebInterface::getMainPage() {
             status.style.background = connected ? '#4CAF50' : '#f44336';
         }
         
+        // ФУНКЦИИ УПРАВЛЕНИЯ ОСЯМИ И СЕТКИ
+        function setGrid(gridSize) {
+            currentGrid = gridSize;
+            document.getElementById('currentGrid').textContent = gridSize;
+            updateGridButtons();
+        }
+        
+        function updateGridButtons() {
+            const buttons = document.querySelectorAll('.grid-btn');
+            buttons.forEach(btn => {
+                const btnGrid = parseFloat(btn.textContent.replace('mm', ''));
+                if (btnGrid === currentGrid) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        
+        function jog(direction) {
+            sendCommand('jog', { direction: direction, distance: currentGrid });
+        }
+        
+        function setZero(axis) {
+            sendCommand('set_zero', { axis: axis });
+        }
+        
+        function setCurrentAsZero() {
+            sendCommand('set_current_as_zero');
+        }
+        
         // Управление системой
         function plasmaOn() {
             sendCommand('plasma_on');
@@ -917,15 +1023,10 @@ String WebInterface::getMainPage() {
             }
         }
         
-        function jog(direction) {
-            sendCommand('jog', { direction: direction, distance: 10 });
-        }
-        
         function saveTHCSettings() {
             const settings = {
                 voltage: parseInt(document.getElementById('voltageSlider').value),
-                deadZone: parseInt(document.getElementById('deadZoneSlider').value),
-                correctionRate: parseFloat(document.getElementById('correctionSlider').value)
+                deadZone: parseInt(document.getElementById('deadZoneSlider').value)
             };
             sendCommand('thc_settings', settings);
             alert('Настройки THC сохранены!');
