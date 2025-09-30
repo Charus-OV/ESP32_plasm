@@ -468,10 +468,9 @@ String WebInterface::getMainPage() {
         }
         
         .z-jog-buttons {
-            display: grid;
-            grid-template-columns: 1fr;
+            display: flex;
+            flex-direction: column;
             gap: 5px;
-            width: 100%;
         }
         
         .jog-btn {
@@ -510,18 +509,18 @@ String WebInterface::getMainPage() {
         }
         .btn-center:hover { transform: none; box-shadow: none; }
         
-        /* Кнопки Z - В 2 РАЗА ШИРЕ */
+        /* Кнопки Z - УЖЕ и ВЕРТИКАЛЬНО справа от X+ */
         .btn-z-plus { 
             background: #4CAF50; 
+            width: 53px;  /* В 3 раза уже */
             height: 60px;
             font-size: 1.2em;
-            width: 50px;
         }
         .btn-z-minus { 
             background: #4CAF50; 
+            width: 53px;  /* В 3 раза уже */
             height: 60px;
             font-size: 1.2em;
-            width: 50px;
         }
         
         /* Control Buttons */
@@ -727,7 +726,6 @@ String WebInterface::getMainPage() {
         <header class="header">
             <div class="logo">
                 <h1>ЧПУ Контроллер</h1>
-                <span>ESP32-S3</span>
             </div>
             <div class="status-bar">
                 <div class="status-item" id="connectionStatus">Подключено</div>
@@ -773,7 +771,7 @@ String WebInterface::getMainPage() {
 
             <!-- Jog Control Panel -->
             <div class="panel jog-panel">
-                <h3>🎮 Ручное управление</h3>
+                <h3>Ручное управление</h3>
                 
                 <!-- НОВАЯ КОМПАКТНАЯ СТРУКТУРА -->
                 <div class="jog-layout">
@@ -1357,7 +1355,7 @@ String WebInterface::getMainPage() {
                 })
                 .then(response => response.text())
                 .then(result => {
-                    alert('🗑️ ' + result);
+                    alert('УДАЛЕНО ' + result);
                     selectedFile = null;
                     loadFileList();
                     document.getElementById('selectedFileInfo').innerHTML = 'Выберите файл для управления';
@@ -1390,4 +1388,5 @@ String WebInterface::getMainPage() {
 </html>
 )rawliteral";
 }
+
 
